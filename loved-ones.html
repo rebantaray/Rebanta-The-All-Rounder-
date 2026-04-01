@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Archive | Connection Tree</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Space+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+        
+        :root {
+            --accent: #ffae00;
+            --bg: #030303;
+            --line: rgba(255, 174, 0, 0.3);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Space Mono', monospace;
+            overflow-x: hidden;
+        }
+
+        /* Digital Grid Background */
+        .grid {
+            position: fixed; inset: 0;
+            background-image: linear-gradient(var(--line) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--line) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 1;
+            mask-image: radial-gradient(circle, black, transparent 90%);
+            opacity: 0.15;
+        }
+
+        /* --- TREE VISUAL SECTION --- */
+        .tree-viewport {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+            padding: 20px;
+        }
+
+        .tree-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .center-node {
+            width: 140px; height: 140px;
+            border: 2px solid var(--accent);
+            background: #000;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 40px var(--accent);
+            font-family: 'Cinzel'; font-weight: bold; font-size: 1.2rem;
+            z-index: 20; letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+            color: white;
+            border-radius: 50%;
+        }
+
+        .center-node:hover {
+            box-shadow: 0 0 60px var(--accent);
+            transform: scale(1.05);
+        }
+
+        .branch-node {
+            position: absolute;
+            padding: 12px 20px;
+            border: 1px solid var(--accent);
+            background: rgba(0,0,0,0.9);
+            color: var(--accent);
+            font-family: 'Cinzel';
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: center;
+            min-width: 140px;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+        }
+
+        .branch-node:hover {
+            background: rgba(255, 174, 0, 0.1);
+            color: white;
+            box-shadow: 0 0 30px var(--accent), inset 0 0 10px var(--accent);
+        }
+
+        /* Desktop Node Positions */
+        .node-family { transform: translate(-280px, -120px); }
+        .node-friends { transform: translate(280px, -120px); }
+        .node-teachers { transform: translate(0px, 200px); }
+
+        svg {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 5;
+        }
+        line { stroke: var(--accent); stroke-width: 1.5; opacity: 0.4; }
+
+        /* --- LIST SECTIONS --- */
+        .list-section {
+            padding: 80px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+            position: relative;
+        }
+
+        .section-title {
+            font-family: 'Cinzel';
+            font-size: 2rem;
+            color: var(--accent);
+            margin-bottom: 40px;
+            letter-spacing: 6px;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(255, 174, 0, 0.3);
+        }
+
+        .name-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .name-tag {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid #222;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.8rem;
+            transition: 0.3s;
+            color: #aaa;
+        }
+        .name-tag:hover { border-color: var(--accent); color: white; background: rgba(255,174,0,0.08); }
+
+        .back-to-tree {
+            margin-top: 50px;
+            cursor: pointer;
+            color: #777;
+            text-decoration: none;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            border: 1px solid #333;
+            padding: 10px 20px;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+        .back-to-tree:hover { color: var(--accent); border-color: var(--accent); }
+
+        #audio-control {
+            position: fixed; top: 20px; right: 20px;
+            z-index: 100; color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 6px 12px; font-size: 0.6rem;
+            background: black; cursor: pointer;
+        }
+
+        /* Copyright Stamp Style */
+        .footer-stamp {
+            width: 100%;
+            padding: 40px 20px;
+            text-align: center;
+            color: #444;
+            font-size: 0.6rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* --- MOBILE OPTIMIZATION --- */
+        @media (max-width: 768px) {
+            .tree-container { height: 450px; }
+            .tree-container svg { display: none; } /* Hide lines on mobile to avoid clutter */
+            
+            .center-node { width: 100px; height: 100px; font-size: 0.9rem; }
+            
+            .branch-node {
+                position: relative;
+                transform: none !important;
+                margin: 10px 0;
+                width: 180px;
+            }
+            
+            .tree-container {
+                flex-direction: column;
+                height: auto;
+                gap: 20px;
+            }
+
+            .section-title { font-size: 1.5rem; letter-spacing: 4px; }
+            .name-grid { grid-template-columns: 1fr; } /* Stack names on small screens */
+            
+            #audio-control { top: 10px; right: 10px; padding: 5px 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="grid"></div>
+    
+    <div id="audio-control" onclick="toggleMusic()">AUDIO: OFF</div>
+
+    <audio id="bgMusic" loop>
+        <source src="l.o.bg.mp3" type="audio/mpeg">
+    </audio>
+
+    <section class="tree-viewport">
+        <h2 style="font-family: 'Cinzel'; letter-spacing: 10px; margin-bottom: 30px; opacity: 0.6; font-size: 0.8rem; text-align: center;">DATABASE // CONNECTIONS</h2>
+        
+        <div class="tree-container">
+            <svg class="desktop-only">
+                <line x1="450" y1="300" x2="170" y2="180" /> 
+                <line x1="450" y1="300" x2="730" y2="180" /> 
+                <line x1="450" y1="300" x2="450" y2="500" /> 
+            </svg>
+
+            <div class="branch-node node-family" onclick="scrollToId('family')">FAMILY</div>
+            <a href="index.html" class="center-node">REBANTA</a>
+            <div class="branch-node node-friends" onclick="scrollToId('friends')">FRIENDS</div>
+            <div class="branch-node node-teachers" onclick="scrollToId('teachers')">TEACHERS</div>
+        </div>
+        
+        <p style="margin-top: 40px; font-size: 0.55rem; color: #444; letter-spacing: 3px; text-align: center; padding: 0 20px;">TAP CENTER TO RETURN // NODES FOR RECORDS</p>
+    </section>
+
+    <section id="family" class="list-section">
+        <h3 class="section-title">FAMILY</h3>
+        <div class="name-grid">
+            <div class="name-tag">Aditi Ghosal & family</div>
+            <div class="name-tag">Mayukh, Mihika & family</div>
+            <div class="name-tag">Ira & family</div>
+            <div class="name-tag">Pinaki Mallick & family</div>
+            <div class="name-tag">Gopi Ray & family</div>
+            <div class="name-tag">Akshay & family</div>
+        </div>
+        <div class="back-to-tree" onclick="window.scrollTo(0,0)">RETURN TO ROOT</div>
+    </section>
+
+    <section id="friends" class="list-section">
+        <h3 class="section-title">FRIENDS</h3>
+        <div class="name-grid">
+            <div class="name-tag">Viraat Kumar</div>
+            <div class="name-tag">Rishabh Mukherjee</div>
+            <div class="name-tag">Kshitiz Pandey</div>
+            <div class="name-tag">Umang Agarwal</div>
+            <div class="name-tag">Abhranil Dutta</div>
+            <div class="name-tag">Adhiraj Dey</div>
+        </div>
+        <div class="back-to-tree" onclick="window.scrollTo(0,0)">RETURN TO ROOT</div>
+    </section>
+
+    <section id="teachers" class="list-section">
+        <h3 class="section-title">TEACHERS</h3>
+        <div class="name-grid">
+            <div class="name-tag">Mrs. Monidipa</div>
+            <div class="name-tag">Mr. Aniket</div>
+            <div class="name-tag">Mrs. Rishita</div>
+        </div>
+        <div class="back-to-tree" onclick="window.scrollTo(0,0)">RETURN TO ROOT</div>
+    </section>
+
+    <footer class="footer-stamp">
+        &copy; 2024 THE ARCHIVE // REBANTA RAY<br>
+        <span style="font-size: 0.5rem; opacity: 0.5;">Digital Connection Interface v1.0</span>
+    </footer>
+
+    <script>
+        const music = document.getElementById('bgMusic');
+        const audioBtn = document.getElementById('audio-control');
+        let musicStarted = false;
+
+        function scrollToId(id) {
+            if (!musicStarted) {
+                playMusic();
+            }
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function playMusic() {
+            music.play().then(() => {
+                musicStarted = true;
+                audioBtn.innerText = "AUDIO: ON";
+            }).catch(err => {
+                console.log("Audio waiting for interaction");
+            });
+        }
+
+        function toggleMusic() {
+            if (music.paused) {
+                music.play();
+                audioBtn.innerText = "AUDIO: ON";
+                musicStarted = true;
+            } else {
+                music.pause();
+                audioBtn.innerText = "AUDIO: OFF";
+            }
+        }
+    </script>
+</body>
+</html>

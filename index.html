@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rebanta | Archive</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Space+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+        
+        :root {
+            --accent: #ffae00; 
+            --heart: #ff3e3e;
+            --bg: #000;
+        }
+
+        body, html { 
+            width: 100%; height: 100%; 
+            background: var(--bg); overflow-x: hidden; 
+            font-family: 'Space Mono', monospace; 
+            color: #fff;
+        }
+
+        /* Hide custom cursor on touch devices to prevent lag */
+        @media (hover: none) and (pointer: coarse) {
+            #cursor { display: none; }
+        }
+
+        #cursor {
+            width: 20px; height: 20px; border: 2px solid var(--accent);
+            border-radius: 50%; position: fixed; pointer-events: none;
+            z-index: 9999; transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px var(--accent);
+            will-change: transform;
+        }
+
+        #flame-canvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 5; pointer-events: none;
+        }
+
+        #video-wrapper { position: fixed; inset: 0; z-index: 1; display: none; }
+        video { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+        
+        .overlay { position: fixed; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,0.7) 0%, transparent 70%); z-index: 2; display: none; }
+
+        /* Mobile Overlay tweak */
+        @media (max-width: 768px) {
+            .overlay { background: rgba(0,0,0,0.6); }
+        }
+
+        #entry { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: center; align-items: center; background: #000; }
+        .gate-btn { 
+            width: 200px; height: 200px; border: 2px solid var(--accent); background: transparent;
+            cursor: pointer; position: relative; overflow: hidden; display: flex;
+            justify-content: center; align-items: center; transition: 0.3s;
+        }
+        .gate-btn span {
+            font-family: 'Cinzel', serif; color: var(--accent); font-size: 1rem;
+            letter-spacing: 3px; font-weight: bold; animation: textSlide 3s infinite ease-in-out;
+        }
+
+        @keyframes textSlide {
+            0% { transform: translateY(0); opacity: 1; }
+            45% { transform: translateY(-40px); opacity: 0; }
+            50% { transform: translateY(40px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .section { position: relative; width: 100%; min-height: 100vh; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10; padding: 20px; }
+
+        /* Profile Card Responsive Logic */
+        .profile-card {
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px);
+            border-left: 5px solid var(--accent); padding: 30px;
+            max-width: 900px; width: 100%; display: flex; flex-direction: row; gap: 30px; 
+            align-items: center; justify-content: center; text-align: left;
+        }
+
+        @media (max-width: 768px) {
+            .profile-card { flex-direction: column; text-align: center; padding: 20px; border-left: none; border-top: 5px solid var(--accent); }
+            h1 { font-size: 2.2rem !important; }
+            .gallery-img { width: 200px; height: 280px; }
+            .icon-bar { justify-content: center; }
+        }
+
+        .gallery-img { width: 260px; height: 360px; object-fit: cover; border: 1px solid #444; }
+        h1 { font-family: 'Cinzel', serif; font-size: 3.5rem; margin-bottom: 5px; }
+        .tagline { color: var(--accent); letter-spacing: 5px; font-size: 0.8rem; margin-bottom: 25px; display: block; }
+
+        .icon-bar { display: flex; gap: 20px; align-items: center; margin-top: 30px; }
+        .social-icon { font-size: 1.5rem; color: #fff; transition: 0.3s; cursor: pointer; text-decoration: none; }
+        .social-icon:hover { color: var(--accent); transform: scale(1.2); }
+        .heart-btn { color: var(--heart) !important; animation: pulse 1.5s infinite; }
+        
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+        #audio-control {
+            position: fixed; top: 20px; right: 20px;
+            z-index: 100; color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 6px 12px; font-size: 0.6rem;
+            background: black; cursor: pointer; display: none;
+        }
+
+        .interest-box { width: 100%; max-width: 900px; background: rgba(0,0,0,0.8); border: 1px solid #222; margin-top: 20px; overflow: hidden; }
+        .interest-table { width: 100%; border-collapse: collapse; }
+        .interest-table th { font-family: 'Cinzel'; padding: 15px; color: var(--accent); background: #111; border-bottom: 1px solid #333; text-align: left; }
+        .interest-table td { padding: 20px; border: 1px solid #222; vertical-align: top; width: 50%; }
+        
+        @media (max-width: 600px) {
+            .interest-table td, .interest-table th { display: block; width: 100%; }
+            .interest-table th:last-of-type { border-top: 1px solid #333; }
+        }
+
+        .bullet-list { list-style-type: none; }
+        .bullet-list li { position: relative; padding-left: 20px; margin-bottom: 8px; font-size: 0.8rem; }
+        .bullet-list li::before { content: "•"; color: var(--accent); position: absolute; left: 0; font-size: 1.1rem; top: -2px; }
+
+        .music-container { 
+            text-align: center; background: rgba(0,0,0,0.9); padding: 40px 20px; 
+            border: 1px solid var(--accent); max-width: 500px; width: 100%; 
+            box-shadow: 0 0 30px rgba(255,174,0,0.2);
+        }
+
+        .moving-lines { display: flex; justify-content: center; align-items: flex-end; height: 50px; gap: 4px; margin: 25px 0; }
+        .line { width: 4px; background: var(--accent); animation: moveLine 0.6s infinite ease-in-out alternate; box-shadow: 0 0 10px var(--accent); }
+        
+        @keyframes moveLine { 0% { height: 10px; opacity: 0.3; } 100% { height: 50px; opacity: 1; } }
+
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; padding: 10px 25px; font-weight: bold; display: none; z-index: 1000; font-size: 0.8rem; }
+        .nav-trigger { position: absolute; bottom: 30px; font-family: 'Cinzel'; color: var(--accent); cursor: pointer; letter-spacing: 2px; font-size: 0.7rem; }
+
+        /* Copyright Stamp */
+        .copyright {
+            width: 100%; text-align: center; padding: 20px;
+            font-size: 0.6rem; color: #444; letter-spacing: 2px;
+            position: relative; z-index: 10; background: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cursor"></div>
+    <canvas id="flame-canvas"></canvas>
+    <div id="toast">COPIED</div>
+    <div id="audio-control" onclick="toggleAudio()">AUDIO: ON</div>
+
+    <div id="entry">
+        <button class="gate-btn" onclick="expand()"><span>INITIALIZE</span></button>
+    </div>
+
+    <div id="video-wrapper">
+        <video id="v" loop playsinline>
+            <source src="bg.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div class="overlay" id="overlay"></div>
+
+    <section id="hero" class="section">
+        <div class="profile-card">
+            <img src="rebanta.jpg" class="gallery-img" alt="Rebanta">
+            <div class="info-text">
+                <h1>REBANTA RAY</h1>
+                <span class="tagline">ALL ROUNDER // MAY 10 2012</span>
+                <p style="font-size: 0.85rem; color: #bbb;">Multidisciplinary Artist. Digital Architect.<br>Living life, mastering the future.</p>
+                <div class="icon-bar">
+                    <i class="fa-solid fa-list social-icon" title="Interests" onclick="go('interests')"></i>
+                    <i class="fa-brands fa-discord social-icon" onclick="copy('rebanta_ray', 'Discord')"></i>
+                    <i class="fa-brands fa-instagram social-icon" onclick="copy('extremelover_160', 'Instagram')"></i>
+                    <a href="https://www.youtube.com/@Rebisvirus" target="_blank" class="social-icon"><i class="fa-brands fa-youtube"></i></a>
+                    <i class="fa-solid fa-music social-icon" onclick="go('music')"></i>
+                    <a href="loved-ones.html" class="social-icon heart-btn" title="People I Love"><i class="fa-solid fa-heart"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="nav-trigger" onclick="go('interests')">VIEW COMPENDIUM</div>
+    </section>
+
+    <section id="interests" class="section">
+        <h2 style="font-family: 'Cinzel'; font-size: 1.8rem; margin-bottom: 20px;">INTERESTS</h2>
+        <div class="interest-box">
+            <table class="interest-table">
+                <tr><th>INTERNAL ARCHIVE</th><th class="hide-mobile">EXTERNAL DATA</th></tr>
+                <tr>
+                    <td>
+                        <ul class="bullet-list">
+                            <li>Website Building</li>
+                            <li>Piano Performance</li>
+                            <li>Guitar Strings</li>
+                            <li>Comics</li>
+                        </ul>
+                    </td>
+                    <td>
+                        <ul class="bullet-list">
+                            <li>Urban Cycling</li>
+                            <li>Gym Training</li>
+                            <li>Football</li>
+                            <li>Swimming</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="nav-trigger" onclick="go('hero')">BACK TO TOP</div>
+    </section>
+
+    <section id="music" class="section">
+        <div class="music-container">
+            <p style="font-size: 0.6rem; letter-spacing: 5px; color: #666; margin-bottom: 10px;">NOW STREAMING</p>
+            <h2 style="font-family: 'Cinzel'; font-size: 1.8rem;">Vivaldi Winter Drill 2</h2>
+            <p style="color: var(--accent); margin-top: 5px; font-weight: bold; letter-spacing: 3px;">VERENIS</p>
+            <div class="moving-lines">
+                <div class="line" style="animation-delay: 0.1s"></div>
+                <div class="line" style="animation-delay: 0.3s"></div>
+                <div class="line" style="animation-delay: 0.2s"></div>
+                <div class="line" style="animation-delay: 0.5s"></div>
+                <div class="line" style="animation-delay: 0.1s"></div>
+            </div>
+            <p style="font-size: 0.5rem; color: #444;">HI-RES AUDIO OUTPUT ENABLED</p>
+        </div>
+        <div class="nav-trigger" onclick="go('hero')">EXIT PLAYER</div>
+    </section>
+
+    <div class="copyright" id="footer-stamp" style="display:none;">
+        &copy; 2024 REBANTA RAY. ALL RIGHTS RESERVED.
+    </div>
+
+    <script>
+        const cursor = document.getElementById('cursor');
+        let mX = 0, mY = 0, bX = 0, bY = 0;
+        document.addEventListener('mousemove', e => { mX = e.clientX; mY = e.clientY; });
+        function moveCursor() {
+            bX += (mX - bX) * 0.15; bY += (mY - bY) * 0.15;
+            cursor.style.transform = `translate3d(${bX}px, ${bY}px, 0) translate(-50%, -50%)`;
+            requestAnimationFrame(moveCursor);
+        }
+        moveCursor();
+
+        const canvas = document.getElementById('flame-canvas');
+        const ctx = canvas.getContext('2d');
+        let w, h, embers = [];
+        function init() { w = window.innerWidth; h = window.innerHeight; canvas.width = w; canvas.height = h; }
+        
+        class Ember {
+            constructor() {
+                this.x = Math.random() * w; this.y = h + 20;
+                this.vx = (Math.random() - 0.5) * 2; this.vy = -(Math.random() * 3 + 2);
+                this.size = Math.random() * 2 + 1; this.alpha = 1;
+            }
+            update() { this.x += this.vx; this.y += this.vy; this.alpha -= 0.005; }
+            draw() {
+                ctx.fillStyle = `rgba(255, 160, 0, ${this.alpha})`;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        function drawLoop() {
+            ctx.clearRect(0, 0, w, h);
+            if (embers.length < 80) embers.push(new Ember());
+            for (let i = 0; i < embers.length; i++) {
+                embers[i].update(); embers[i].draw();
+                if (embers[i].alpha <= 0 || embers[i].y < -20) { embers.splice(i, 1); i--; }
+            }
+            requestAnimationFrame(drawLoop);
+        }
+
+        const video = document.getElementById('v');
+        const audioBtn = document.getElementById('audio-control');
+
+        function expand() {
+            document.getElementById('entry').style.display = 'none';
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'flex');
+            document.getElementById('video-wrapper').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('footer-stamp').style.display = 'block';
+            audioBtn.style.display = 'block';
+            video.muted = false;
+            video.volume = 1.0;
+            video.play().catch(e => console.log("Playback error: ", e));
+        }
+
+        function toggleAudio() {
+            if (video.muted) {
+                video.muted = false; video.volume = 1.0;
+                audioBtn.innerText = "AUDIO: ON";
+            } else {
+                video.muted = true;
+                audioBtn.innerText = "AUDIO: OFF";
+            }
+        }
+
+        function go(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+        
+        function copy(text, label) {
+            navigator.clipboard.writeText(text);
+            const toast = document.getElementById('toast');
+            toast.innerText = label + " COPIED"; toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2000);
+        }
+
+        window.addEventListener('resize', init);
+        init(); drawLoop();
+    </script>
+</body>
+</html>
